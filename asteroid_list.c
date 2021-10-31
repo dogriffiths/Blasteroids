@@ -22,7 +22,7 @@ Node *createAsteroidList(int num) {
     return start;
 }
 
-void splitAsteroid(Node *node, Node* startOfBlastList) {
+Node *splitAsteroid(Node *node, Node* startOfBlastList) {
     Asteroid *newAsteroid = createRandomAsteroid();
     Asteroid *asteroid = (Asteroid *) node->data;
     newAsteroid->x = asteroid->x;
@@ -32,7 +32,9 @@ void splitAsteroid(Node *node, Node* startOfBlastList) {
 
     Node *link = insertBefore(newAsteroid, node);
     if (node == startOfBlastList)
-        startOfBlastList = link;
+        return link;
+
+    return startOfBlastList;
 }
 
 Node *collisionDetected(float x, float y, float otherRadius, Node* startOfAsteroidList) {

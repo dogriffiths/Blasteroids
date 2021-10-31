@@ -19,21 +19,24 @@ const char *default_files[] = {NULL, "split.ogg",
                                "laser.ogg", "explode.ogg",
 };
 
+void moveBlasts();
+
+void moveAsteroids();
+
+void checkHitByAsteroid(ALLEGRO_SAMPLE *const *sample_data, Ship *s);
+
+void checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data);
+
+void drawBlasts(Node *startOfBlastList);
+
+void drawAsteroids(Node *startOfAsteroidList);
+
+void loadAudioSamples(ALLEGRO_SAMPLE **sample_data);
+
 Node *startOfAsteroidList = NULL;
 
 Node *startOfBlastList = NULL;
 
-Node *moveBlasts(Node *startOfBlastList);
-
-void moveAsteroids(Node *startOfAsteroidList);
-
-void checkHitByAsteroid(ALLEGRO_SAMPLE *const *sample_data, Ship *s);
-
-Node *checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data, Node *startOfBlastList);
-
-Node *drawBlasts(Node *startOfBlastList);
-
-void drawAsteroids(Node *startOfAsteroidList);
 
 int main() {
     ALLEGRO_SAMPLE *sample_data[MAX_SAMPLE_DATA] = {NULL};
@@ -44,7 +47,6 @@ int main() {
     ALLEGRO_EVENT event;
 
     Ship ship = {.x = (WIDTH / 2.0f), .y = (HEIGHT / 2.0f), .speed = 0.0f};
-
     startOfAsteroidList = createAsteroidList(50);
 
     if (!al_install_audio()) {
@@ -57,19 +59,7 @@ int main() {
         exit(1);
     }
 
-    memset(sample_data, 0, sizeof(sample_data));
-    if (!(sample_data[0] = al_load_sample("laser.ogg"))) {
-        printf("Could not load sound");
-        exit(1);
-    }
-    if (!(sample_data[1] = al_load_sample("explode.ogg"))) {
-        printf("Could not load sound");
-        exit(1);
-    }
-    if (!(sample_data[2] = al_load_sample("split.ogg"))) {
-        printf("Could not load sound");
-        exit(1);
-    }
+    loadAudioSamples(sample_data);
 
     while (1) {
         al_wait_for_event(game->queue, &event);
@@ -79,28 +69,28 @@ int main() {
                 redraw = true;
                 break;
 
-                case ALLEGRO_EVENT_KEY_CHAR:
-                    if (event.keyboard.keycode == ALLEGRO_KEY_UP)
-                        accelerate(&ship);
-                    if (event.keyboard.keycode == ALLEGRO_KEY_DOWN)
-                        decelerate(&ship);
-                    if (event.keyboard.keycode == ALLEGRO_KEY_LEFT)
-                        turnLeft(&ship);
-                    if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT)
-                        turnRight(&ship);
-                    if (event.keyboard.keycode == ALLEGRO_KEY_SPACE) {
-                        startOfBlastList = fireBlast(&ship, startOfBlastList);
-                        ALLEGRO_SAMPLE_ID new_sample_id;
-                        al_play_sample(sample_data[0], 1.0f, 0.0f, 1.0f,
-                                       ALLEGRO_PLAYMODE_ONCE, &new_sample_id);
-                    }
+            case ALLEGRO_EVENT_KEY_CHAR:
+                if (event.keyboard.keycode == ALLEGRO_KEY_UP)
+                    accelerate(&ship);
+                else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN)
+                    decelerate(&ship);
+                else if (event.keyboard.keycode == ALLEGRO_KEY_LEFT)
+                    turnLeft(&ship);
+                else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT)
+                    turnRight(&ship);
+                else if (event.keyboard.keycode == ALLEGRO_KEY_SPACE) {
+                    startOfBlastList = fireBlast(&ship, startOfBlastList);
+                    ALLEGRO_SAMPLE_ID new_sample_id;
+                    al_play_sample(sample_data[0], 1.0f, 0.0f, 1.0f,
+                                   ALLEGRO_PLAYMODE_ONCE, &new_sample_id);
+                }
 
-                    if (event.keyboard.keycode != ALLEGRO_KEY_ESCAPE)
-                        break;
+                if (event.keyboard.keycode != ALLEGRO_KEY_ESCAPE)
+                    break;
 
-                    case ALLEGRO_EVENT_DISPLAY_CLOSE:
-                        done = true;
-                        break;
+            case ALLEGRO_EVENT_DISPLAY_CLOSE:
+                done = true;
+                break;
         }
 
         if (done)
@@ -110,13 +100,11 @@ int main() {
             al_clear_to_color(al_map_rgb(0, 0, 0));
 
             moveShip(&ship);
-            startOfBlastList = moveBlasts(startOfBlastList);
+            moveBlasts(startOfBlastList);
             moveAsteroids(startOfAsteroidList);
 
-
             checkHitByAsteroid(sample_data, &ship);
-            startOfBlastList = checkHitAsteroid(sample_data, startOfBlastList);
-
+            checkHitAsteroid(sample_data);
 
             drawShip(&ship);
             drawBlasts(startOfBlastList);
@@ -144,6 +132,22 @@ int main() {
     return 0;
 }
 
+void loadAudioSamples(ALLEGRO_SAMPLE **sample_data) {
+    memset(sample_data, 0, sizeof(sample_data));
+    if (!(sample_data[0] = al_load_sample("laser.ogg"))) {
+        printf("Could not load sound");
+        exit(1);
+    }
+    if (!(sample_data[1] = al_load_sample("explode.ogg"))) {
+        printf("Could not load sound");
+        exit(1);
+    }
+    if (!(sample_data[2] = al_load_sample("split.ogg"))) {
+        printf("Could not load sound");
+        exit(1);
+    }
+}
+
 void drawAsteroids(Node *startOfAsteroidList) {
     Node *i = startOfAsteroidList;
     while (i) {
@@ -152,17 +156,16 @@ void drawAsteroids(Node *startOfAsteroidList) {
     }
 }
 
-Node *drawBlasts(Node *startOfBlastList) {
+void drawBlasts(Node *startOfBlastList) {
     Node *ib = startOfBlastList;
     while (ib) {
         Blast *blast = ib->data;
         drawBlast(blast);
         ib = ib->next;
     }
-    return ib;
 }
 
-Node *checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data, Node *startOfBlastList) {
+void checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data) {
     Node *ib = startOfBlastList;
     while (ib) {
         Blast *blast = ib->data;
@@ -171,7 +174,7 @@ Node *checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data, Node *startOfBlastLis
         Node *pAsteroid = collisionDetected(blast->x, blast->y, 5.0f, startOfAsteroidList);
         if (pAsteroid) {
             if (((Asteroid *) pAsteroid->data)->scale > 0.5f) {
-                splitAsteroid(pAsteroid, startOfBlastList);
+                startOfBlastList = splitAsteroid(pAsteroid, startOfBlastList);
             } else {
                 startOfAsteroidList = removeNode(pAsteroid, startOfAsteroidList);
             }
@@ -184,7 +187,6 @@ Node *checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data, Node *startOfBlastLis
 
         ib = next;
     }
-    return startOfBlastList;
 }
 
 void checkHitByAsteroid(ALLEGRO_SAMPLE *const *sample_data, Ship *s) {
@@ -199,7 +201,7 @@ void checkHitByAsteroid(ALLEGRO_SAMPLE *const *sample_data, Ship *s) {
     }
 }
 
-void moveAsteroids(Node *startOfAsteroidList) {
+void moveAsteroids() {
     Node *i = startOfAsteroidList;
     while (i) {
         moveAsteroid(i->data);
@@ -207,7 +209,7 @@ void moveAsteroids(Node *startOfAsteroidList) {
     }
 }
 
-Node *moveBlasts(Node *startOfBlastList) {
+void moveBlasts() {
     Node *ib = startOfBlastList;
     while (ib) {
         Blast *pBlast = ib->data;
@@ -218,6 +220,5 @@ Node *moveBlasts(Node *startOfBlastList) {
         }
         ib = next;
     }
-    return startOfBlastList;
 }
 
