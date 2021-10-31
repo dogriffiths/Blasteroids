@@ -1,6 +1,5 @@
 #include <allegro5/allegro5.h>
 #include <stdbool.h>
-#include <math.h>
 #include "utils.h"
 #include "config.h"
 #include "linkedList.h"
@@ -15,31 +14,28 @@
 
 #define RESERVED_SAMPLES   16
 #define MAX_SAMPLE_DATA    10
-const char *default_files[] = {NULL, "split.ogg",
-                               "laser.ogg", "explode.ogg",
-};
 
 void moveBlasts();
 
 void moveAsteroids();
 
-void checkHitByAsteroid(ALLEGRO_SAMPLE *const *sample_data, Ship *s);
+void checkHitByAsteroid(Ship *s);
 
-void checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data);
+void checkHitAsteroid();
 
-void drawBlasts(Node *startOfBlastList);
+void drawBlasts();
 
-void drawAsteroids(Node *startOfAsteroidList);
+void drawAsteroids();
 
-void loadAudioSamples(ALLEGRO_SAMPLE **sample_data);
+void loadAudioSamples();
 
 Node *startOfAsteroidList = NULL;
 
 Node *startOfBlastList = NULL;
 
+ALLEGRO_SAMPLE *sample_data[MAX_SAMPLE_DATA] = {NULL};
 
 int main() {
-    ALLEGRO_SAMPLE *sample_data[MAX_SAMPLE_DATA] = {NULL};
     Game *game = initGame();
 
     bool done = false;
@@ -59,7 +55,7 @@ int main() {
         exit(1);
     }
 
-    loadAudioSamples(sample_data);
+    loadAudioSamples();
 
     while (1) {
         al_wait_for_event(game->queue, &event);
@@ -100,15 +96,15 @@ int main() {
             al_clear_to_color(al_map_rgb(0, 0, 0));
 
             moveShip(&ship);
-            moveBlasts(startOfBlastList);
-            moveAsteroids(startOfAsteroidList);
+            moveBlasts();
+            moveAsteroids();
 
-            checkHitByAsteroid(sample_data, &ship);
-            checkHitAsteroid(sample_data);
+            checkHitByAsteroid(&ship);
+            checkHitAsteroid();
 
             drawShip(&ship);
-            drawBlasts(startOfBlastList);
-            drawAsteroids(startOfAsteroidList);
+            drawBlasts();
+            drawAsteroids();
 
             al_flip_display();
 
@@ -124,7 +120,6 @@ int main() {
             al_destroy_sample(sample_data[i]);
     }
 
-    /* Sample data and other objects will be automatically freed. */
     al_uninstall_audio();
 
     destroyGame(game);
@@ -132,7 +127,7 @@ int main() {
     return 0;
 }
 
-void loadAudioSamples(ALLEGRO_SAMPLE **sample_data) {
+void loadAudioSamples() {
     memset(sample_data, 0, sizeof(sample_data));
     if (!(sample_data[0] = al_load_sample("laser.ogg"))) {
         printf("Could not load sound");
@@ -148,7 +143,7 @@ void loadAudioSamples(ALLEGRO_SAMPLE **sample_data) {
     }
 }
 
-void drawAsteroids(Node *startOfAsteroidList) {
+void drawAsteroids() {
     Node *i = startOfAsteroidList;
     while (i) {
         drawAsteroid(i->data);
@@ -156,7 +151,7 @@ void drawAsteroids(Node *startOfAsteroidList) {
     }
 }
 
-void drawBlasts(Node *startOfBlastList) {
+void drawBlasts() {
     Node *ib = startOfBlastList;
     while (ib) {
         Blast *blast = ib->data;
@@ -165,7 +160,7 @@ void drawBlasts(Node *startOfBlastList) {
     }
 }
 
-void checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data) {
+void checkHitAsteroid() {
     Node *ib = startOfBlastList;
     while (ib) {
         Blast *blast = ib->data;
@@ -189,7 +184,7 @@ void checkHitAsteroid(ALLEGRO_SAMPLE *const *sample_data) {
     }
 }
 
-void checkHitByAsteroid(ALLEGRO_SAMPLE *const *sample_data, Ship *s) {
+void checkHitByAsteroid(Ship *s) {
     if (collisionDetected((*s).x, (*s).y, 10.0f, startOfAsteroidList)) {
         (*s).x = WIDTH / 2.0f;
         (*s).y = HEIGHT / 2.0f;
